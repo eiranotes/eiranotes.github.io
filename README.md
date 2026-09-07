@@ -6,7 +6,7 @@
 
 1. `CNAME` 파일로 사용자 지정 도메인 `app.adeliedraw.com`을 GitHub Pages에 연결합니다.
    이 설정 덕분에 같은 계정의 프로젝트 사이트가 `app.adeliedraw.com/<저장소 이름>`으로 열립니다.
-   (예: [`adeliepages`](https://github.com/eiranotes/adeliepages) → `app.adeliedraw.com/adeliepages`)
+   (예: [`pages`](https://github.com/eiranotes/pages) → `app.adeliedraw.com/pages`)
 2. 루트 주소에 앱 목록을 보여줍니다.
 
 ## DNS
