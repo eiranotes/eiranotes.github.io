@@ -10,15 +10,27 @@ const META = {
   '11': {title:'CHEF’S & BEER TERRACE', sub:'셰프 · 맥주 테라스', feature:'분수', dir:'12丁目 ←   → 10丁目'}
 };
 const ORDER = ['4','5','6','7','8','10','11'];
-const STORAGE_KEY = 'sapporo-autumnfest-2026-09-14-plan-v1';
+const STORAGE_KEY = 'sapporo-autumnfest-2026-09-14-plan-v2';
+const LEGACY_STORAGE_KEY = 'sapporo-autumnfest-2026-09-14-plan-v1';
 const state = {venue:'4', mode:'map', selected:'1', q:'', open:null};
 
 function loadPlan(){
   try{
-    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    const current = localStorage.getItem(STORAGE_KEY);
+    const raw = JSON.parse(current || localStorage.getItem(LEGACY_STORAGE_KEY) || '{}');
+    const menus = new Set(Array.isArray(raw.menus) ? raw.menus : []);
+    let directStores = Array.isArray(raw.directStores) ? raw.directStores : null;
+    if(!directStores){
+      // v1 stored menu-driven automatic inclusions in stores too. During migration,
+      // keep only store-only choices as direct selections; selected menus still
+      // make their store appear through plannedStoreKeys().
+      directStores = (Array.isArray(raw.stores) ? raw.stores : []).filter(key=>
+        ![...menus].some(menu=>menu.startsWith(key+'|'))
+      );
+    }
     return {
-      stores: new Set(Array.isArray(raw.stores) ? raw.stores : []),
-      menus: new Set(Array.isArray(raw.menus) ? raw.menus : [])
+      stores: new Set(directStores),
+      menus
     };
   }catch(_){
     return {stores:new Set(), menus:new Set()};
@@ -28,7 +40,7 @@ const plan = loadPlan();
 
 function savePlan(){
   try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({stores:[...plan.stores], menus:[...plan.menus]}));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({version:2,directStores:[...plan.stores], menus:[...plan.menus]}));
   }catch(_){ /* private mode/storage restrictions: keep in-memory state */ }
 }
 function storeKey(x){ return `${x.venue}|${x.no}`; }
@@ -37,7 +49,8 @@ function findStore(key){
   const [venue,no] = String(key).split('|');
   return DATA.find(x=>x.venue===venue && x.no===no);
 }
-function isStorePicked(x){ return plan.stores.has(storeKey(x)); }
+function isStoreDirect(x){ return plan.stores.has(storeKey(x)); }
+function isStorePicked(x){ return plannedStoreKeys().has(storeKey(x)); }
 function isMenuPicked(x,index){ return plan.menus.has(menuKey(x,index)); }
 function plannedStoreKeys(){
   const keys = new Set(plan.stores);
@@ -49,7 +62,7 @@ function plannedStoreKeys(){
 }
 function toggleStore(x){
   const key = storeKey(x);
-  if(plan.stores.has(key)){
+  if(isStorePicked(x)){
     plan.stores.delete(key);
     for(const menu of [...plan.menus]) if(menu.startsWith(key+'|')) plan.menus.delete(menu);
   }else{
@@ -61,7 +74,6 @@ function toggleMenu(x,index,checked){
   const key = menuKey(x,index);
   if(checked){
     plan.menus.add(key);
-    plan.stores.add(storeKey(x));
   }else{
     plan.menus.delete(key);
   }
