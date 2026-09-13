@@ -1,0 +1,161 @@
+const DATA = window.AF_DATA || [];
+
+const META = {
+  '4': {title:'IN4 인포 스퀘어', sub:'먹거리 입문 구역', feature:'분수', dir:'5丁目 ←   → 3丁目'},
+  '5': {title:'EAT THE NORTH', sub:'라멘 · 카레 · 빵', feature:'성은비', dir:'6丁目 ←   → 4丁目'},
+  '6': {title:'SAPPORO FOOD JAM', sub:'삿포로 푸드잼', feature:'야외 스테이지', dir:'7丁目 ←   → 5丁目'},
+  '7': {title:'7丁目 BAR', sub:'술 · 안주 · 홋카이도 요리', feature:'분수', dir:'8丁目 ←   → 6丁目'},
+  '8': {title:'홋카이도 시장', sub:'도내 시정촌 특산물', feature:'블랙 슬라이드 만트라', dir:'9丁目 ←   → 7丁目'},
+  '10': {title:'고기 10丁目', sub:'홋카이도 육류 집중', feature:'가든 라운지', dir:'11丁目 ←   → 9丁目'},
+  '11': {title:'CHEF’S & BEER TERRACE', sub:'셰프 · 맥주 테라스', feature:'분수', dir:'12丁目 ←   → 10丁目'}
+};
+const ORDER = ['4','5','6','7','8','10','11'];
+const state = {venue:'4', mode:'map', selected:'1', q:'', open:null};
+
+function setPos(map, no, left, top){ map[String(no)] = [left, top]; }
+
+function buildPositions(venue){
+  const p = {};
+  if(venue === '4'){
+    [['1',42,21],['2',46,21],['3',53,21],['4',57,21],['5',61,21],['6',69,21],['7',73,21],['8',79,21],['9',50,66],
+     ['10',40,78],['11',44,78],['12',47,78],['13',54,78],['14',58,78],['15',69,78],['16',73,78],['17',76,78],['18',80,78],
+     ['19',35,38],['20',35,45],['21',35,52],['22',35,59],['23',35,66],['24',35,73],['25',64,37],['26',64,44],['27',64,51],['28',64,58],['29',64,65],['30',64,72]
+    ].forEach(x=>setPos(p,...x));
+  }
+  if(venue === '5'){
+    [['R1',42,28],['R2',46,28],['R3',50,28],['R4',55,28],['R5',59,28],['6',66,34],['7',66,43],['8',66,52],['9',66,61],['10',66,70],
+     ['11',56,76],['12',51,76],['13',25,76],['14',29,76],['15',34,70],['16',34,61],['17',34,54],['18',34,47],['19',34,40],['20',34,34],['21',34,28],['22',77,28],
+     ['C1',42,76],['C2',46,76],['C3',49,76],['B1',70,28],['B2',73,28],['B3',76,28],['B4',79,28]
+    ].forEach(x=>setPos(p,...x));
+  }
+  if(venue === '6'){
+    [1,2].forEach((n,i)=>setPos(p,n,27+i*4,76));
+    [3,4,5,6,7,8,9,10].forEach((n,i)=>setPos(p,n,[40,43,46,49,52,55,59,62][i],76));
+    setPos(p,11,71,76); setPos(p,12,75,76);
+    [13,14,15,16,17,18].forEach((n,i)=>setPos(p,n,32,[37,44,51,58,65,72][i]));
+    [19,20,21,22,23,24].forEach((n,i)=>setPos(p,n,69,[37,44,51,58,65,72][i]));
+  }
+  if(venue === '7'){
+    [['1',22,29],['2',40,29],['3',43,29],['4',46,29],['5',50,29],['6',53,29],['7',57,29],['8',60,29],['9',63,29],
+     ['11',22,76],['12',27,76],['13',40,76],['14',43,76],['15',46,76],['16',50,76],['17',53,76],['18',56,76],['19',60,76],['20',63,76],
+     ['BAR',82,52],['P',79,29]
+    ].forEach(x=>setPos(p,...x));
+  }
+  if(venue === '8'){
+    [2,3,4,5,6,7,8,9].forEach((n,i)=>setPos(p,n,[42,45,48,51,54,57,60,63][i],34));
+    [[10,45],[11,48],[12,51],[13,57],[14,60],[15,63]].forEach(([n,x])=>setPos(p,n,x,42));
+    [16,17,18,19,20,21,22].forEach((n,i)=>setPos(p,n,40,[39,46,53,60,67,74,81][i]));
+    [23,24,25,26,27,28].forEach((n,i)=>setPos(p,n,[45,48,51,54,57,60][i],68));
+    [29,30,31,32,33,34,35,36,37].forEach((n,i)=>setPos(p,n,[41,44,47,50,53,56,59,62,65][i],78));
+    [38,39,40,41,42,43,44].forEach((n,i)=>setPos(p,n,66,[38,45,52,59,66,73,80][i]));
+    [45,46,47,48].forEach((n,i)=>setPos(p,n,[75,78,81,84][i],30));
+    setPos(p,49,81,78); setPos(p,'Z1',51,53); setPos(p,'Z2',84,86); setPos(p,'Z3',58,53);
+  }
+  if(venue === '10'){
+    [1,2,3,4,5,6,7,8,9,10].forEach((n,i)=>setPos(p,n,[29,32,36,39,43,47,51,54,59,62][i],i===4||i===5?27:24));
+    [11,12,13,14,15,16,17,18].forEach((n,i)=>setPos(p,n,[34,38,42,45,50,53,57,60][i],76));
+    setPos(p,19,30,38); setPos(p,20,30,63); setPos(p,21,30,71);
+    [22,23,24,25,26].forEach((n,i)=>setPos(p,n,66,[39,47,55,63,71][i]));
+    setPos(p,'W',24,56);
+  }
+  if(venue === '11'){
+    [['1',50,72],['2',36,69],['3',34,59],['4',34,49],['5',36,39],['6',43,29],['7',47,29],['8',51,29],['9',55,29],['10',59,29],['11',70,25],['12',65,34],['CUP',76,72]].forEach(x=>setPos(p,...x));
+  }
+  return p;
+}
+
+const POSITIONS = Object.fromEntries(ORDER.map(v=>[v,buildPositions(v)]));
+
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function money(p){
+  p = String(p || '');
+  if(!p) return '';
+  if(/[¥円]|현장|상이|공식/.test(p)) return esc(p);
+  return '¥' + esc(p);
+}
+function venueData(){ return DATA.filter(x=>x.venue===state.venue); }
+function matches(x){
+  const q = state.q.trim().toLowerCase();
+  if(!q) return true;
+  const hay = [x.name,x.cat,x.menu,...(x.menus||[]).flatMap(m=>[m.ko,m.ja,m.price])].join(' ').toLowerCase();
+  return hay.includes(q);
+}
+function displayNo(x){
+  if(state.venue==='5'){
+    if(/^R\d/.test(x.no)) return x.no.slice(1);
+    if(/^B\d/.test(x.no)) return String(24 + Number(x.no.slice(1)));
+    if(/^C\d/.test(x.no)) return 'C' + x.no.slice(1);
+  }
+  return x.no;
+}
+function renderVenueTabs(){
+  document.getElementById('venueTabs').innerHTML = ORDER.map(v=>
+    `<button class="${v===state.venue?'active':''}" data-venue="${v}">${v}丁目 <span>${DATA.filter(x=>x.venue===v).length}</span></button>`
+  ).join('');
+}
+function detailPanel(x){
+  if(!x) return '<div class="detail"><h3>가게를 선택하세요</h3></div>';
+  return `<div class="detail">
+    <div class="eyebrow">${esc(x.venue)}丁目 · ${esc(x.cat)} · ${esc(x.period)}</div>
+    <h3>${esc(x.name)}</h3>
+    <div class="meta2">부스 ${esc(displayNo(x))}${x.note?' · '+esc(x.note):''}</div>
+    <table class="menu-table"><tbody>${(x.menus||[]).map((m,i)=>
+      `<tr><td>${i+1}</td><td><span class="ko">${esc(m.ko)}</span><span class="ja">${esc(m.ja)}</span></td><td>${money(m.price)}</td></tr>`
+    ).join('')}</tbody></table>
+  </div>`;
+}
+function mapView(){
+  const all = venueData();
+  const visible = all.filter(matches);
+  let selected = all.find(x=>x.no===state.selected) || visible[0] || all[0];
+  if(selected) state.selected = selected.no;
+  const meta = META[state.venue];
+  const pos = POSITIONS[state.venue];
+  const featureClass = ['4','7','11'].includes(state.venue) ? 'feature round' : 'feature';
+  return `<div class="venue-head"><div class="num">${state.venue}</div><h2>${esc(meta.title)}</h2><div class="sub">${esc(meta.sub)}</div></div>
+    <div class="map-layout">
+      <div class="map-wrap">
+        <div class="schematic">
+          <div class="roads"></div><div class="axis north">북</div><div class="axis south">남</div><div class="axis west">서</div><div class="axis east">동</div>
+          <div class="${featureClass}">${esc(meta.feature)}</div><div class="dir">${esc(meta.dir)}</div>
+          ${all.map(x=>{const xy=pos[x.no]||[88,88];return `<button aria-label="${esc(x.name)}" title="${esc(x.name)}" class="marker ${x.no===state.selected?'active':''} ${state.q&&matches(x)?'hasmatch':''} ${state.q&&!matches(x)?'hidden':''}" style="left:${xy[0]}%;top:${xy[1]}%" data-store="${esc(x.no)}">${esc(displayNo(x))}</button>`}).join('')}
+        </div>
+        <div class="map-note"><span>공식 MAP의 부스 번호 위치를 단순화한 배치도</span><span>번호를 누르면 상세 메뉴 표시</span></div>
+      </div>
+      <aside class="side">
+        ${detailPanel(selected)}
+        <div class="store-index"><div class="index-head"><span>점포 목록</span><span>${visible.length}/${all.length}</span></div>
+          <div class="store-rows">${visible.map(x=>`<button class="store-row ${x.no===state.selected?'active':''}" data-store="${esc(x.no)}"><span class="rno">${esc(displayNo(x))}</span><span class="rname">${esc(x.name)}</span><span class="rprice">${esc(x.price)}</span></button>`).join('')}</div>
+        </div>
+      </aside>
+    </div>`;
+}
+function listView(){
+  const all = venueData().filter(matches);
+  const meta = META[state.venue];
+  return `<div class="venue-head"><div class="num">${state.venue}</div><h2>${esc(meta.title)}</h2><div class="sub">${esc(meta.sub)} · 한국어 상세 메뉴</div></div>
+    <div class="menu-list">${all.map(x=>`<div class="list-store ${state.open===x.no?'open':''}">
+      <button class="list-summary" data-open="${esc(x.no)}"><span class="ln">${esc(displayNo(x))}</span><span class="lname">${esc(x.name)}</span><span class="cat">${esc(x.cat)} · ${esc(x.period)}</span><span class="lp">${esc(x.price)}</span></button>
+      <div class="expanded"><table class="menu-table"><tbody>${(x.menus||[]).map((m,i)=>`<tr><td>${i+1}</td><td><span class="ko">${esc(m.ko)}</span><span class="ja">원문 · ${esc(m.ja)}</span></td><td>${money(m.price)}</td></tr>`).join('')}</tbody></table>
+      <div class="list-foot">공식 판매표 기준 대표 4–5종. 공식표 자체가 4종인 특설 부스는 공개 항목 전부 표시.</div></div></div>`).join('') || '<div class="empty">검색 결과가 없습니다.</div>'}</div>`;
+}
+function render(){
+  renderVenueTabs();
+  document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===state.mode));
+  document.getElementById('app').innerHTML = state.mode==='map' ? mapView() : listView();
+}
+
+document.addEventListener('click',e=>{
+  const venue = e.target.closest('[data-venue]');
+  if(venue){ state.venue=venue.dataset.venue; state.selected=(DATA.find(x=>x.venue===state.venue)||{}).no||''; state.open=null; render(); return; }
+  const mode = e.target.closest('[data-mode]');
+  if(mode){ state.mode=mode.dataset.mode; render(); return; }
+  const store = e.target.closest('[data-store]');
+  if(store){ state.selected=store.dataset.store; render(); return; }
+  const open = e.target.closest('[data-open]');
+  if(open){ state.open=state.open===open.dataset.open ? null : open.dataset.open; render(); }
+});
+document.getElementById('search').addEventListener('input',e=>{ state.q=e.target.value; render(); });
+render();
