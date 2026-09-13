@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#173a32">
   <title>삿포로 오텀 페스트 2026 · 9/14 지도 & 상세 메뉴</title>
-  <link rel="stylesheet" href="./style.css?v=3">
+  <link rel="stylesheet" href="./style.css?v=4">
 </head>
 <body>
   <header>
@@ -29,6 +29,7 @@
       <div class="mode">
         <button type="button" data-mode="map" class="active">지도</button>
         <button type="button" data-mode="list">메뉴 리스트</button>
+        <button type="button" data-mode="saved">체크한 곳 <span id="savedCount" class="saved-count">0</span></button>
         <input id="search" class="search" type="search" placeholder="가게·메뉴 검색" aria-label="가게와 메뉴 검색">
       </div>
       <nav id="venueTabs" class="venue-tabs" aria-label="오도리 행사장 구역"></nav>
@@ -42,7 +43,7 @@
     </div>
   </main>
 
-  <script src="./data.js?v=3"></script>
-  <script src="./app.js?v=3"></script>
+  <script src="./data.js?v=4"></script>
+  <script src="./app.js?v=4"></script>
 </body>
 </html>

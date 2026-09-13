@@ -10,7 +10,63 @@ const META = {
   '11': {title:'CHEF’S & BEER TERRACE', sub:'셰프 · 맥주 테라스', feature:'분수', dir:'12丁目 ←   → 10丁目'}
 };
 const ORDER = ['4','5','6','7','8','10','11'];
+const STORAGE_KEY = 'sapporo-autumnfest-2026-09-14-plan-v1';
 const state = {venue:'4', mode:'map', selected:'1', q:'', open:null};
+
+function loadPlan(){
+  try{
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    return {
+      stores: new Set(Array.isArray(raw.stores) ? raw.stores : []),
+      menus: new Set(Array.isArray(raw.menus) ? raw.menus : [])
+    };
+  }catch(_){
+    return {stores:new Set(), menus:new Set()};
+  }
+}
+const plan = loadPlan();
+
+function savePlan(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({stores:[...plan.stores], menus:[...plan.menus]}));
+  }catch(_){ /* private mode/storage restrictions: keep in-memory state */ }
+}
+function storeKey(x){ return `${x.venue}|${x.no}`; }
+function menuKey(x, index){ return `${storeKey(x)}|${index}`; }
+function findStore(key){
+  const [venue,no] = String(key).split('|');
+  return DATA.find(x=>x.venue===venue && x.no===no);
+}
+function isStorePicked(x){ return plan.stores.has(storeKey(x)); }
+function isMenuPicked(x,index){ return plan.menus.has(menuKey(x,index)); }
+function plannedStoreKeys(){
+  const keys = new Set(plan.stores);
+  for(const key of plan.menus){
+    const [venue,no] = key.split('|');
+    keys.add(`${venue}|${no}`);
+  }
+  return keys;
+}
+function toggleStore(x){
+  const key = storeKey(x);
+  if(plan.stores.has(key)){
+    plan.stores.delete(key);
+    for(const menu of [...plan.menus]) if(menu.startsWith(key+'|')) plan.menus.delete(menu);
+  }else{
+    plan.stores.add(key);
+  }
+  savePlan();
+}
+function toggleMenu(x,index,checked){
+  const key = menuKey(x,index);
+  if(checked){
+    plan.menus.add(key);
+    plan.stores.add(storeKey(x));
+  }else{
+    plan.menus.delete(key);
+  }
+  savePlan();
+}
 
 function setPos(map, no, left, top){ map[String(no)] = [left, top]; }
 
@@ -75,6 +131,12 @@ function money(p){
   if(/[¥円]|현장|상이|공식/.test(p)) return esc(p);
   return '¥' + esc(p);
 }
+function exactPrice(p){
+  const raw = String(p || '').trim();
+  if(!/^¥?\s*[\d,]+(?:円)?$/.test(raw)) return null;
+  const n = Number(raw.replace(/[^\d]/g,''));
+  return Number.isFinite(n) ? n : null;
+}
 function venueData(){ return DATA.filter(x=>x.venue===state.venue); }
 function matches(x){
   const q = state.q.trim().toLowerCase();
@@ -83,7 +145,7 @@ function matches(x){
   return hay.includes(q);
 }
 function displayNo(x){
-  if(state.venue==='5'){
+  if(x.venue==='5'){
     if(/^R\d/.test(x.no)) return x.no.slice(1);
     if(/^B\d/.test(x.no)) return String(24 + Number(x.no.slice(1)));
     if(/^C\d/.test(x.no)) return 'C' + x.no.slice(1);
@@ -91,20 +153,40 @@ function displayNo(x){
   return x.no;
 }
 function renderVenueTabs(){
-  document.getElementById('venueTabs').innerHTML = ORDER.map(v=>
+  const nav = document.getElementById('venueTabs');
+  nav.classList.toggle('hidden', state.mode==='saved');
+  nav.innerHTML = ORDER.map(v=>
     `<button class="${v===state.venue?'active':''}" data-venue="${v}">${v}丁目 <span>${DATA.filter(x=>x.venue===v).length}</span></button>`
   ).join('');
+}
+function storePickButton(x, compact=false){
+  const picked = isStorePicked(x);
+  return `<button type="button" class="store-pick ${picked?'picked':''} ${compact?'compact':''}" data-store-check="${esc(storeKey(x))}" aria-pressed="${picked}"><span class="pick-icon">${picked?'✓':'＋'}</span>${compact?'':`<span>${picked?'갈 곳':'갈 곳 체크'}</span>`}</button>`;
+}
+function menuRows(x, originalPrefix=''){
+  return (x.menus||[]).map((m,i)=>{
+    const picked = isMenuPicked(x,i);
+    return `<tr class="${picked?'picked-menu':''}">
+      <td class="menu-check-cell"><label class="menu-check" title="이 메뉴 체크"><input type="checkbox" data-menu-check="${esc(storeKey(x))}" data-menu-index="${i}" ${picked?'checked':''}><span>✓</span></label></td>
+      <td><span class="ko">${esc(m.ko)}</span><span class="ja">${originalPrefix}${esc(m.ja)}</span></td>
+      <td>${money(m.price)}</td>
+    </tr>`;
+  }).join('');
 }
 function detailPanel(x){
   if(!x) return '<div class="detail"><h3>가게를 선택하세요</h3></div>';
   return `<div class="detail">
     <div class="eyebrow">${esc(x.venue)}丁目 · ${esc(x.cat)} · ${esc(x.period)}</div>
-    <h3>${esc(x.name)}</h3>
+    <div class="detail-title"><h3>${esc(x.name)}</h3>${storePickButton(x)}</div>
     <div class="meta2">부스 ${esc(displayNo(x))}${x.note?' · '+esc(x.note):''}</div>
-    <table class="menu-table"><tbody>${(x.menus||[]).map((m,i)=>
-      `<tr><td>${i+1}</td><td><span class="ko">${esc(m.ko)}</span><span class="ja">${esc(m.ja)}</span></td><td>${money(m.price)}</td></tr>`
-    ).join('')}</tbody></table>
+    <table class="menu-table"><tbody>${menuRows(x)}</tbody></table>
   </div>`;
+}
+function storeRows(visible){
+  return visible.map(x=>`<div class="store-row-wrap ${isStorePicked(x)?'picked':''}">
+    ${storePickButton(x,true)}
+    <button class="store-row ${x.no===state.selected?'active':''}" data-store="${esc(x.no)}"><span class="rno">${esc(displayNo(x))}</span><span class="rname">${esc(x.name)}</span><span class="rprice">${esc(x.price)}</span></button>
+  </div>`).join('');
 }
 function mapView(){
   const all = venueData();
@@ -120,14 +202,14 @@ function mapView(){
         <div class="schematic">
           <div class="roads"></div><div class="axis north">북</div><div class="axis south">남</div><div class="axis west">서</div><div class="axis east">동</div>
           <div class="${featureClass}">${esc(meta.feature)}</div><div class="dir">${esc(meta.dir)}</div>
-          ${all.map(x=>{const xy=pos[x.no]||[88,88];return `<button aria-label="${esc(x.name)}" title="${esc(x.name)}" class="marker ${x.no===state.selected?'active':''} ${state.q&&matches(x)?'hasmatch':''} ${state.q&&!matches(x)?'hidden':''}" style="left:${xy[0]}%;top:${xy[1]}%" data-store="${esc(x.no)}">${esc(displayNo(x))}</button>`}).join('')}
+          ${all.map(x=>{const xy=pos[x.no]||[88,88];return `<button aria-label="${esc(x.name)}" title="${esc(x.name)}" class="marker ${x.no===state.selected?'active':''} ${isStorePicked(x)?'picked':''} ${state.q&&matches(x)?'hasmatch':''} ${state.q&&!matches(x)?'hidden':''}" style="left:${xy[0]}%;top:${xy[1]}%" data-store="${esc(x.no)}">${esc(displayNo(x))}</button>`}).join('')}
         </div>
-        <div class="map-note"><span>공식 MAP의 부스 번호 위치를 단순화한 배치도</span><span>번호를 누르면 상세 메뉴 표시</span></div>
+        <div class="map-note"><span>공식 MAP의 부스 번호 위치를 단순화한 배치도</span><span><b class="plan-dot"></b> 체크한 가게 · 번호를 누르면 상세 메뉴</span></div>
       </div>
       <aside class="side">
         ${detailPanel(selected)}
         <div class="store-index"><div class="index-head"><span>점포 목록</span><span>${visible.length}/${all.length}</span></div>
-          <div class="store-rows">${visible.map(x=>`<button class="store-row ${x.no===state.selected?'active':''}" data-store="${esc(x.no)}"><span class="rno">${esc(displayNo(x))}</span><span class="rname">${esc(x.name)}</span><span class="rprice">${esc(x.price)}</span></button>`).join('')}</div>
+          <div class="store-rows">${storeRows(visible)}</div>
         </div>
       </aside>
     </div>`;
@@ -136,18 +218,61 @@ function listView(){
   const all = venueData().filter(matches);
   const meta = META[state.venue];
   return `<div class="venue-head"><div class="num">${state.venue}</div><h2>${esc(meta.title)}</h2><div class="sub">${esc(meta.sub)} · 한국어 상세 메뉴</div></div>
-    <div class="menu-list">${all.map(x=>`<div class="list-store ${state.open===x.no?'open':''}">
-      <button class="list-summary" data-open="${esc(x.no)}"><span class="ln">${esc(displayNo(x))}</span><span class="lname">${esc(x.name)}</span><span class="cat">${esc(x.cat)} · ${esc(x.period)}</span><span class="lp">${esc(x.price)}</span></button>
-      <div class="expanded"><table class="menu-table"><tbody>${(x.menus||[]).map((m,i)=>`<tr><td>${i+1}</td><td><span class="ko">${esc(m.ko)}</span><span class="ja">원문 · ${esc(m.ja)}</span></td><td>${money(m.price)}</td></tr>`).join('')}</tbody></table>
-      <div class="list-foot">공식 판매표 기준 대표 4–5종. 공식표 자체가 4종인 특설 부스는 공개 항목 전부 표시.</div></div></div>`).join('') || '<div class="empty">검색 결과가 없습니다.</div>'}</div>`;
+    <div class="menu-list">${all.map(x=>`<div class="list-store ${state.open===x.no?'open':''} ${isStorePicked(x)?'picked':''}">
+      <div class="list-summary-row">${storePickButton(x,true)}<button class="list-summary" data-open="${esc(x.no)}"><span class="ln">${esc(displayNo(x))}</span><span class="lname">${esc(x.name)}</span><span class="cat">${esc(x.cat)} · ${esc(x.period)}</span><span class="lp">${esc(x.price)}</span></button></div>
+      <div class="expanded"><table class="menu-table"><tbody>${menuRows(x,'원문 · ')}</tbody></table>
+      <div class="list-foot">가게 왼쪽의 ＋로 갈 곳을 체크하고, 메뉴 행의 체크박스로 먹을 메뉴를 따로 선택할 수 있습니다.</div></div></div>`).join('') || '<div class="empty">검색 결과가 없습니다.</div>'}</div>`;
+}
+function savedView(){
+  const keys = plannedStoreKeys();
+  const stores = DATA.filter(x=>keys.has(storeKey(x)) && matches(x));
+  const selectedMenus = [];
+  for(const x of stores){
+    (x.menus||[]).forEach((m,i)=>{ if(isMenuPicked(x,i)) selectedMenus.push({x,m,i}); });
+  }
+  let exactTotal = 0;
+  let variableCount = 0;
+  for(const {m} of selectedMenus){
+    const p = exactPrice(m.price);
+    if(p==null) variableCount++;
+    else exactTotal += p;
+  }
+  const groups = ORDER.map(venue=>({venue,stores:stores.filter(x=>x.venue===venue)})).filter(g=>g.stores.length);
+  return `<div class="saved-head">
+    <div><div class="saved-kicker">MY AUTUMN FEST</div><h2>체크한 곳</h2><p>가게 ${stores.length}곳 · 선택 메뉴 ${selectedMenus.length}개</p></div>
+    <div class="saved-total"><span>선택 메뉴 확정가 합계</span><b>${exactTotal?`¥${exactTotal.toLocaleString('ja-JP')}`:'—'}</b>${variableCount?`<small>범위·현장가 ${variableCount}개 별도</small>`:''}</div>
+  </div>
+  ${groups.length ? groups.map(g=>`<section class="plan-section"><div class="plan-section-head"><b>${g.venue}丁目</b><span>${g.stores.length}곳</span></div>
+    <div class="plan-table"><div class="plan-tr plan-th"><span>위치</span><span>가게 / 메뉴</span><span>가격</span><span></span></div>
+    ${g.stores.map(x=>{
+      const menus=(x.menus||[]).map((m,i)=>({m,i})).filter(({i})=>isMenuPicked(x,i));
+      if(!menus.length) return `<div class="plan-tr store-only"><span>${g.venue}丁目 #${esc(displayNo(x))}</span><span><b>${esc(x.name)}</b><small>메뉴 미선택</small></span><span>—</span><span><button class="plan-map" data-plan-open="${esc(storeKey(x))}">지도</button></span></div>`;
+      return menus.map(({m,i},row)=>`<div class="plan-tr"><span>${row===0?`${g.venue}丁目 #${esc(displayNo(x))}`:''}</span><span>${row===0?`<b>${esc(x.name)}</b>`:''}<small class="picked-menu-name">${esc(m.ko)}</small></span><span>${money(m.price)}</span><span>${row===0?`<button class="plan-map" data-plan-open="${esc(storeKey(x))}">지도</button>`:''}</span></div>`).join('');
+    }).join('')}</div></section>`).join('') : '<div class="empty saved-empty"><b>아직 체크한 곳이 없습니다.</b><span>지도나 메뉴 리스트에서 가게의 ＋ 또는 메뉴 체크박스를 누르면 여기에 모입니다.</span></div>'}
+  <div class="saved-note">체크 내역은 이 브라우저의 로컬 저장소에 저장됩니다. 같은 iPhone·같은 브라우저에서 다시 열면 유지됩니다.</div>`;
 }
 function render(){
   renderVenueTabs();
+  const count = plannedStoreKeys().size;
+  const badge = document.getElementById('savedCount');
+  if(badge) badge.textContent = count;
   document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===state.mode));
-  document.getElementById('app').innerHTML = state.mode==='map' ? mapView() : listView();
+  document.getElementById('app').innerHTML = state.mode==='map' ? mapView() : state.mode==='list' ? listView() : savedView();
 }
 
 document.addEventListener('click',e=>{
+  const pick = e.target.closest('[data-store-check]');
+  if(pick){
+    const x = findStore(pick.dataset.storeCheck);
+    if(x){ toggleStore(x); render(); }
+    return;
+  }
+  const planOpen = e.target.closest('[data-plan-open]');
+  if(planOpen){
+    const x = findStore(planOpen.dataset.planOpen);
+    if(x){ state.venue=x.venue; state.selected=x.no; state.mode='map'; state.q=''; document.getElementById('search').value=''; render(); }
+    return;
+  }
   const venue = e.target.closest('[data-venue]');
   if(venue){ state.venue=venue.dataset.venue; state.selected=(DATA.find(x=>x.venue===state.venue)||{}).no||''; state.open=null; render(); return; }
   const mode = e.target.closest('[data-mode]');
@@ -157,5 +282,17 @@ document.addEventListener('click',e=>{
   const open = e.target.closest('[data-open]');
   if(open){ state.open=state.open===open.dataset.open ? null : open.dataset.open; render(); }
 });
+
+document.addEventListener('change',e=>{
+  const input = e.target.closest('[data-menu-check]');
+  if(!input) return;
+  const x = findStore(input.dataset.menuCheck);
+  const index = Number(input.dataset.menuIndex);
+  if(x && Number.isInteger(index)){
+    toggleMenu(x,index,input.checked);
+    render();
+  }
+});
+
 document.getElementById('search').addEventListener('input',e=>{ state.q=e.target.value; render(); });
 render();
