@@ -12,7 +12,7 @@ const META = {
 const ORDER = ['4','5','6','7','8','10','11'];
 const STORAGE_KEY = 'sapporo-autumnfest-2026-09-14-plan-v2';
 const LEGACY_STORAGE_KEY = 'sapporo-autumnfest-2026-09-14-plan-v1';
-const state = {venue:'4', mode:'map', selected:'1', q:'', open:null};
+const state = {venue:'4', mode:'map', selected:'1', q:'', openStores:new Set()};
 
 function loadPlan(){
   try{
@@ -150,11 +150,33 @@ function exactPrice(p){
   return Number.isFinite(n) ? n : null;
 }
 function venueData(){ return DATA.filter(x=>x.venue===state.venue); }
+function normalizeSearch(value){
+  return String(value ?? '').normalize('NFKC').toLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
+}
+function searchTerms(){
+  return state.q.trim().split(/\s+/).map(normalizeSearch).filter(Boolean);
+}
+function storeSearchText(x){
+  return normalizeSearch([x.venue+'丁目',x.no,x.name,x.cat,x.period,x.note].join(' '));
+}
+function menuSearchText(x,m){
+  return normalizeSearch([storeSearchText(x),m.ko,m.ja,m.en,m.zh,m.price].join(' '));
+}
+function matchesTerms(text, terms=searchTerms()){
+  return !terms.length || terms.every(term=>text.includes(term));
+}
 function matches(x){
-  const q = state.q.trim().toLowerCase();
-  if(!q) return true;
-  const hay = [x.name,x.cat,x.menu,...(x.menus||[]).flatMap(m=>[m.ko,m.ja,m.price])].join(' ').toLowerCase();
-  return hay.includes(q);
+  const terms = searchTerms();
+  if(!terms.length) return true;
+  if(matchesTerms(storeSearchText(x),terms)) return true;
+  return (x.menus||[]).some(m=>matchesTerms(menuSearchText(x,m),terms));
+}
+function matchingMenus(x){
+  const terms = searchTerms();
+  if(!terms.length) return (x.menus||[]).map((m,i)=>({m,i}));
+  const storeOnly = matchesTerms(storeSearchText(x),terms);
+  const rows = (x.menus||[]).map((m,i)=>({m,i}));
+  return storeOnly ? rows : rows.filter(({m})=>matchesTerms(menuSearchText(x,m),terms));
 }
 function displayNo(x){
   if(x.venue==='5'){
@@ -175,8 +197,9 @@ function storePickButton(x, compact=false){
   const picked = isStorePicked(x);
   return `<button type="button" class="store-pick ${picked?'picked':''} ${compact?'compact':''}" data-store-check="${esc(storeKey(x))}" aria-pressed="${picked}"><span class="pick-icon">${picked?'✓':'＋'}</span>${compact?'':`<span>${picked?'갈 곳':'갈 곳 체크'}</span>`}</button>`;
 }
-function menuRows(x, originalPrefix=''){
-  return (x.menus||[]).map((m,i)=>{
+function menuRows(x, originalPrefix='', searchFilter=false){
+  const rows = searchFilter ? matchingMenus(x) : (x.menus||[]).map((m,i)=>({m,i}));
+  return rows.map(({m,i})=>{
     const picked = isMenuPicked(x,i);
     return `<tr class="${picked?'picked-menu':''}">
       <td class="menu-check-cell"><label class="menu-check" title="이 메뉴 체크"><input type="checkbox" data-menu-check="${esc(storeKey(x))}" data-menu-index="${i}" ${picked?'checked':''}><span>✓</span></label></td>
@@ -185,6 +208,7 @@ function menuRows(x, originalPrefix=''){
     </tr>`;
   }).join('');
 }
+
 function detailPanel(x){
   if(!x) return '<div class="detail"><h3>가게를 선택하세요</h3></div>';
   return `<div class="detail">
@@ -227,14 +251,23 @@ function mapView(){
     </div>`;
 }
 function listView(){
-  const all = venueData().filter(matches);
+  const searching = !!searchTerms().length;
+  const all = (searching ? DATA : venueData()).filter(matches);
   const meta = META[state.venue];
-  return `<div class="venue-head"><div class="num">${state.venue}</div><h2>${esc(meta.title)}</h2><div class="sub">${esc(meta.sub)} · 한국어 상세 메뉴</div></div>
-    <div class="menu-list">${all.map(x=>`<div class="list-store ${state.open===x.no?'open':''} ${isStorePicked(x)?'picked':''}">
-      <div class="list-summary-row">${storePickButton(x,true)}<button class="list-summary" data-open="${esc(x.no)}"><span class="ln">${esc(displayNo(x))}</span><span class="lname">${esc(x.name)}</span><span class="cat">${esc(x.cat)} · ${esc(x.period)}</span><span class="lp">${esc(x.price)}</span></button></div>
-      <div class="expanded"><table class="menu-table"><tbody>${menuRows(x,'원문 · ')}</tbody></table>
-      <div class="list-foot">가게 왼쪽의 ＋로 갈 곳을 체크하고, 메뉴 행의 체크박스로 먹을 메뉴를 따로 선택할 수 있습니다.</div></div></div>`).join('') || '<div class="empty">검색 결과가 없습니다.</div>'}</div>`;
+  const title = searching ? `검색 결과 ${all.length}곳` : `${state.venue}丁目 ${esc(meta.title)}`;
+  const sub = searching ? `전체 행사장 검색 · “${esc(state.q.trim())}”` : `${esc(meta.sub)} · 한국어 상세 메뉴`;
+  return `<div class="venue-head ${searching?'search-head':''}"><div class="num">${searching?'⌕':state.venue}</div><h2>${title}</h2><div class="sub">${sub}</div></div>
+    <div class="menu-list">${all.map(x=>{
+      const key=storeKey(x);
+      const open=searching || state.openStores.has(key);
+      const location=searching ? `${x.venue}丁目 #${esc(displayNo(x))}` : esc(displayNo(x));
+      return `<div class="list-store ${open?'open':''} ${isStorePicked(x)?'picked':''}">
+      <div class="list-summary-row">${storePickButton(x,true)}<button class="list-summary" data-open="${esc(key)}"><span class="ln">${location}</span><span class="lname">${esc(x.name)}</span><span class="cat">${esc(x.cat)} · ${esc(x.period)}</span><span class="lp">${esc(x.price)}</span></button></div>
+      <div class="expanded"><table class="menu-table"><tbody>${menuRows(x,'원문 · ',searching)}</tbody></table>
+      <div class="list-foot">${searching?'검색어와 일치하는 메뉴만 표시 중입니다.':'가게 왼쪽의 ＋로 갈 곳을 체크하고, 메뉴 행의 체크박스로 먹을 메뉴를 따로 선택할 수 있습니다.'}</div></div></div>`;
+    }).join('') || '<div class="empty">검색 결과가 없습니다.</div>'}</div>`;
 }
+
 function savedView(){
   const keys = plannedStoreKeys();
   const stores = DATA.filter(x=>keys.has(storeKey(x)) && matches(x));
@@ -286,13 +319,13 @@ document.addEventListener('click',e=>{
     return;
   }
   const venue = e.target.closest('[data-venue]');
-  if(venue){ state.venue=venue.dataset.venue; state.selected=(DATA.find(x=>x.venue===state.venue)||{}).no||''; state.open=null; render(); return; }
+  if(venue){ state.venue=venue.dataset.venue; state.selected=(DATA.find(x=>x.venue===state.venue)||{}).no||''; render(); return; }
   const mode = e.target.closest('[data-mode]');
   if(mode){ state.mode=mode.dataset.mode; render(); return; }
   const store = e.target.closest('[data-store]');
   if(store){ state.selected=store.dataset.store; render(); return; }
   const open = e.target.closest('[data-open]');
-  if(open){ state.open=state.open===open.dataset.open ? null : open.dataset.open; render(); }
+  if(open){ const key=open.dataset.open; if(state.openStores.has(key)) state.openStores.delete(key); else state.openStores.add(key); render(); }
 });
 
 document.addEventListener('change',e=>{
@@ -306,5 +339,5 @@ document.addEventListener('change',e=>{
   }
 });
 
-document.getElementById('search').addEventListener('input',e=>{ state.q=e.target.value; render(); });
+document.getElementById('search').addEventListener('input',e=>{ state.q=e.target.value; if(state.q.trim() && state.mode!=='saved') state.mode='list'; render(); });
 render();
