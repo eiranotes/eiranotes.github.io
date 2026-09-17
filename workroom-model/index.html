@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AdelieDraw 작업방 모델</title>
+<style>
+:root{--bg:#f5f3ee;--card:#fff;--ink:#1f2328;--muted:#6c727a;--line:#ddd9d0;--wood:#e5c79a;--storage:#d8e3e8;--peg:#ece7d9;--book:#cdb897;--cart:#d7eadf}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",sans-serif}
+header{padding:18px 20px 12px;background:#ffffffdd;backdrop-filter:blur(8px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+h1{margin:0 0 4px;font-size:20px}.sub{color:var(--muted)}
+.wrap{max-width:1280px;margin:auto;padding:16px;display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 12px #00000008}
+.main{padding:14px}.side{padding:14px;height:max-content}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}button{border:1px solid var(--line);background:white;border-radius:9px;padding:8px 11px;cursor:pointer}button.on{background:#23262a;color:#fff}
+svg{width:100%;height:auto;aspect-ratio:1/1;background:#faf9f6;border:1px solid var(--line);border-radius:12px}
+.section{padding:12px 0;border-bottom:1px solid #eee}.section:last-child{border-bottom:0}.section h2{font-size:14px;margin:0 0 8px}
+.kv{display:grid;grid-template-columns:1fr auto;gap:6px 10px}.kv span:nth-child(odd){color:var(--muted)}
+.row{display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center;margin:8px 0}.row input{width:100%}.n{text-align:right;font-variant-numeric:tabular-nums}
+.badge{display:inline-block;padding:2px 7px;border-radius:999px;background:#eef0ec;font-size:11px;margin-left:4px}
+.spec{border:1px solid #e6e2da;border-radius:9px;padding:9px;margin:7px 0;background:#fbfaf7}.spec b{display:block}.spec small{color:var(--muted)}
+.note{background:#f2f6f3;border-left:3px solid #2f6f58;padding:9px 10px;border-radius:8px;font-size:12px;color:#42514a}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}.dot{width:10px;height:10px;border-radius:2px;display:inline-block;margin-right:4px}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}.side{order:-1}}
+</style>
+</head>
+<body>
+<header>
+  <h1>AdelieDraw 작업방 <span class="badge">3,300 × 3,200 mm</span></h1>
+  <div class="sub">오른쪽 침실 실측 도면 비례 모델. 책상 제거 후 수납·피킹·포장 동선을 중심으로 배치.</div>
+</header>
+<div class="wrap">
+  <div class="card main">
+    <div class="toolbar">
+      <button id="openBtn" class="on">오픈형</button>
+      <button id="tableBtn">센터 포장대형</button>
+      <button id="dimBtn" class="on">치수 표시</button>
+      <button id="wallBtn" class="on">벽수납 표시</button>
+    </div>
+    <svg id="room" viewBox="0 0 860 820" aria-label="AdelieDraw 작업방 평면 모델"></svg>
+    <div class="legend">
+      <span><i class="dot" style="background:var(--storage)"></i>기존 리빙박스</span>
+      <span><i class="dot" style="background:var(--book)"></i>기존 책장</span>
+      <span><i class="dot" style="background:var(--peg)"></i>SKÅDIS/벽수납</span>
+      <span><i class="dot" style="background:var(--wood)"></i>포장 작업면</span>
+      <span><i class="dot" style="background:var(--cart)"></i>피킹 카트</span>
+    </div>
+  </div>
+
+  <aside class="card side">
+    <div class="section">
+      <h2>방 기준</h2>
+      <div class="kv">
+        <span>방 폭</span><b>3,300 mm</b>
+        <span>방 깊이</span><b>3,200 mm</b>
+        <span>출입문</span><b>약 850 mm</b>
+        <span>창</span><b>약 1,500 mm</b>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>배치 조절</h2>
+      <div class="row"><label>리빙박스 깊이</label><span id="livingVal" class="n">450 mm</span></div>
+      <input id="living" type="range" min="350" max="650" step="25" value="450">
+      <div class="row"><label>책장 깊이</label><span id="bookVal" class="n">300 mm</span></div>
+      <input id="book" type="range" min="250" max="450" step="25" value="300">
+      <div class="row"><label>SKÅDIS 패널 수</label><span id="panelVal" class="n">6 장</span></div>
+      <input id="panels" type="range" min="2" max="6" step="2" value="6">
+      <div class="row"><label>센터 포장대 폭</label><span id="tableVal" class="n">1,200 mm</span></div>
+      <input id="table" type="range" min="900" max="1500" step="100" value="1200">
+    </div>
+
+    <div class="section">
+      <h2>제품 기준 수납</h2>
+      <div class="spec"><b>씰스티커</b><small>주력 85×160 / 85×175 mm → 얇은 세로 슬롯형</small></div>
+      <div class="spec"><b>메모지</b><small>80×106 / 106×80 mm → 얕은 오픈빈 또는 서랍</small></div>
+      <div class="spec"><b>키스컷</b><small>주력 폭 30 mm, 일부 40 mm → 오픈빈·바구니형</small></div>
+    </div>
+
+    <div class="section">
+      <h2>실제 수납 모듈 기준</h2>
+      <div class="spec"><b>IKEA SKÅDIS</b><small>760×560 mm 페그보드</small></div>
+      <div class="spec"><b>SKÅDIS 선반</b><small>280×90 mm</small></div>
+      <div class="spec"><b>SKÅDIS 보관용기</b><small>75×90×80 mm</small></div>
+      <div class="note">오른쪽 3.2m 벽은 책장 약 800mm + SKÅDIS 3장 가로 2,280mm 구성으로 총 약 3,080mm를 사용하도록 잡았습니다.</div>
+    </div>
+  </aside>
+</div>
+
+<script>
+const svg=document.getElementById('room'),NS='http://www.w3.org/2000/svg';
+const state={mode:'open',dims:true,wall:true,living:450,book:300,panels:6,table:1200};
+const W=3300,H=3200,s=.185,ox=105,oy=100;
+const X=v=>ox+v*s,Y=v=>oy+v*s;
+function E(tag,a,p=svg){const e=document.createElementNS(NS,tag);Object.entries(a||{}).forEach(([k,v])=>e.setAttribute(k,v));p.appendChild(e);return e}
+function T(x,y,t,size=12,weight=500,fill='#1f2328'){const e=E('text',{x,y,'font-size':size,'font-weight':weight,fill,'text-anchor':'middle'});e.textContent=t;return e}
+function rect(x,y,w,h,fill,label,fs=11){const g=E('g');E('rect',{x:X(x),y:Y(y),width:w*s,height:h*s,fill,stroke:'#555b60','stroke-width':1.2,rx:3},g);if(label)T(X(x+w/2),Y(y+h/2),label,fs,650);return g}
+function dim(x1,y1,x2,y2,label,offset=0){if(!state.dims)return;E('line',{x1,y1,x2,y2,stroke:'#8b9197'});const dx=x2-x1,dy=y2-y1,l=Math.hypot(dx,dy)||1,px=-dy/l,py=dx/l;[[x1,y1],[x2,y2]].forEach(([x,y])=>E('line',{x1:x-px*5,y1:y-py*5,x2:x+px*5,y2:y+py*5,stroke:'#8b9197'}));T((x1+x2)/2+px*offset,(y1+y2)/2+py*offset,label,11,500,'#70767c')}
+function render(){
+ svg.innerHTML='';
+ E('rect',{x:X(0),y:Y(0),width:W*s,height:H*s,fill:'#f8f3e8',stroke:'#292b2e','stroke-width':6});
+ for(let i=500;i<W;i+=500)E('line',{x1:X(i),y1:Y(0),x2:X(i),y2:Y(H),stroke:'#e8e1d5','stroke-width':.7});
+ for(let i=500;i<H;i+=500)E('line',{x1:X(0),y1:Y(i),x2:X(W),y2:Y(i),stroke:'#e8e1d5','stroke-width':.7});
+
+ // door, top-left
+ const doorX=180,doorW=850;
+ E('line',{x1:X(doorX),y1:Y(0),x2:X(doorX+doorW),y2:Y(0),stroke:'#f8f3e8','stroke-width':10});
+ E('line',{x1:X(doorX),y1:Y(0),x2:X(doorX),y2:Y(doorW),stroke:'#8b6b4e','stroke-width':4});
+ E('path',{d:'M '+X(doorX+doorW)+' '+Y(0)+' A '+doorW*s+' '+doorW*s+' 0 0 0 '+X(doorX)+' '+Y(doorW),fill:'none',stroke:'#aaa','stroke-dasharray':'5 5'});
+
+ // window, bottom
+ const winX=900,winW=1500;
+ E('line',{x1:X(winX),y1:Y(H),x2:X(winX+winW),y2:Y(H),stroke:'#6ba9c8','stroke-width':9});
+ E('line',{x1:X(winX),y1:Y(H-20),x2:X(winX+winW),y2:Y(H-20),stroke:'#cfe6f1','stroke-width':3});
+
+ // left storage wall
+ rect(0,780,state.living,2380,'#d8e3e8','리빙박스 수납벽');
+ // right top bookshelf
+ rect(W-state.book,40,state.book,800,'#cdb897','기존 책장',10);
+
+ // right wall modules
+ if(state.wall){
+   const cols=Math.ceil(state.panels/2),run=cols*760,startY=H-run-40;
+   rect(W-105,startY,105,run,'#ece7d9','SKÅDIS',10);
+   for(let c=0;c<cols;c++){
+     E('line',{x1:X(W-105),y1:Y(startY+c*760),x2:X(W),y2:Y(startY+c*760),stroke:'#aaa392'});
+     const cy=startY+c*760+380;
+     T(X(W-52),Y(cy),'2단',9,500,'#6a655d');
+   }
+   T(X(W-155),Y(startY-70),state.panels+' panels / '+cols+'×2',10,500,'#756e64');
+ }
+
+ // compact packing shelf or center table
+ if(state.mode==='open'){
+   rect(1150,0,1200,450,'#e5c79a','접이식 포장 작업면');
+ } else {
+   rect((W-state.table)/2,1330,state.table,600,'#e5c79a','센터 포장대');
+ }
+ rect(2570,2380,440,520,'#d7eadf','피킹 카트',10);
+
+ // flow
+ const pts=[[650,1200],[1500,1200],[2550,1200],[2550,2100],[1700,2420]].map(p=>[X(p[0]),Y(p[1])]);
+ E('polyline',{points:pts.map(p=>p.join(',')).join(' '),fill:'none',stroke:'#2f6f58','stroke-width':2,'stroke-dasharray':'7 6'});
+ T(X(1710),Y(1120),'예비재고 → 피킹 → 포장',10,600,'#2f6f58');
+
+ dim(X(0),Y(-180),X(W),Y(-180),'3,300 mm',-13);
+ dim(X(W+180),Y(0),X(W+180),Y(H),'3,200 mm',16);
+ T(X(winX+winW/2),Y(H-70),'창 약 1,500',10,500,'#5f91a8');
+ T(X(doorX+doorW/2),Y(110),'문 약 850',10,500,'#777');
+}
+function sync(){
+ state.living=+document.getElementById('living').value;
+ state.book=+document.getElementById('book').value;
+ state.panels=+document.getElementById('panels').value;
+ state.table=+document.getElementById('table').value;
+ document.getElementById('livingVal').textContent=state.living+' mm';
+ document.getElementById('bookVal').textContent=state.book+' mm';
+ document.getElementById('panelVal').textContent=state.panels+' 장';
+ document.getElementById('tableVal').textContent=state.table.toLocaleString()+' mm';
+ render();
+}
+['living','book','panels','table'].forEach(id=>document.getElementById(id).addEventListener('input',sync));
+document.getElementById('openBtn').onclick=function(){state.mode='open';this.classList.add('on');document.getElementById('tableBtn').classList.remove('on');render()};
+document.getElementById('tableBtn').onclick=function(){state.mode='table';this.classList.add('on');document.getElementById('openBtn').classList.remove('on');render()};
+document.getElementById('dimBtn').onclick=function(){state.dims=!state.dims;this.classList.toggle('on',state.dims);render()};
+document.getElementById('wallBtn').onclick=function(){state.wall=!state.wall;this.classList.toggle('on',state.wall);render()};
+render();
+</script>
+</body>
+</html>
