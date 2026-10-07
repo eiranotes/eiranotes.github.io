@@ -15,50 +15,136 @@
 <meta name="theme-color" content="#F8F8F8">
 <link rel="icon" type="image/png" href="assets/img/favicon.png">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<link rel="preload" href="brand/fonts/LINESeedKR-Rg.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="brand/adelie-web.css">
+<script src="brand/adelie-web.js" defer></script>
 <style>
-@font-face{font-family:"LINESeedKR";src:url("assets/fonts/LINESeedKR-Rg.woff2") format("woff2");font-weight:400;font-display:swap}
-@font-face{font-family:"LINESeedKR";src:url("assets/fonts/LINESeedKR-Bd.woff2") format("woff2");font-weight:700;font-display:swap}
-:root{--indigo:#123F8D;--canvas:#F8F8F8;--text:#211C17;--text-2:#665E55;--text-3:#6F675E;--rule:#D8D8D5;--rule-strong:#BCBDBA}
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:flex;flex-direction:column;
-  background-color:var(--canvas);background-image:url("assets/img/paper-grain.png");background-size:320px 320px;
-  color:var(--text);font-family:"LINESeedKR",Pretendard,"Apple SD Gothic Neo",system-ui,-apple-system,sans-serif;
-  line-height:1.65;-webkit-font-smoothing:antialiased;word-break:keep-all}
-main{flex:1;width:100%;max-width:720px;margin-inline:auto;padding:clamp(56px,10vw,120px) 20px}
-.eyebrow{margin:0 0 16px;font-size:11px;font-weight:700;letter-spacing:.14em;color:var(--indigo)}
-h1{margin:0;font-size:clamp(28px,5vw,42px);font-weight:700;letter-spacing:-.03em;line-height:1.2}
-.lede{margin:24px 0 0;max-width:44ch;color:var(--text-2);font-size:16.5px}
-.apps{list-style:none;margin:48px 0 0;padding:0;border-top:1px solid var(--rule)}
-.apps li{border-bottom:1px solid var(--rule)}
-.apps a{display:flex;align-items:center;gap:16px;padding:20px 4px;color:inherit;text-decoration:none}
-.apps a:hover .name{color:var(--indigo)}
-.apps img{width:44px;height:44px;border-radius:10px;flex:0 0 auto}
-.name{display:block;font-weight:700;font-size:18px;letter-spacing:-.01em}
-.desc{display:block;font-size:14px;color:var(--text-2)}
-.arrow{margin-left:auto;color:var(--indigo);font-weight:700}
-footer{border-top:1px solid var(--rule);padding:24px 20px;font-size:12.5px;color:var(--text-3)}
-footer div{max-width:720px;margin-inline:auto} footer a{color:inherit;text-underline-offset:3px}
-a:focus-visible{outline:2px solid #4E73B7;outline-offset:3px}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column}
+main{flex:1;width:100%;max-width:calc(var(--ad-narrow) + var(--ad-gutter) * 2);margin-inline:auto;padding:var(--ad-section) var(--ad-gutter) var(--ad-s9)}
+.skip{position:fixed;top:-100px;left:16px;z-index:50;padding:12px 16px;background:var(--ad-indigo);color:var(--ad-on-indigo)}
+.skip:focus{top:16px}
+h1{margin:0;font-size:var(--ad-fs-display);font-weight:400;letter-spacing:var(--ad-ls-display);line-height:var(--ad-lh-display)}
+h1 em{font-style:normal;color:var(--ad-indigo)}
+.lede{margin:var(--ad-s5) 0 0;max-width:34em;color:var(--ad-ink-2);font-size:var(--ad-fs-lead);line-height:var(--ad-lh-body)}
+
+/* Card catalog drawer: each app is one index card standing in the drawer. */
+.drawer{position:relative;margin-top:var(--ad-s8);padding:var(--ad-s6) var(--ad-s5) 0;background:var(--ad-paper-warm);border:1px solid var(--ad-rule);border-bottom:0}
+.drawer-cards{list-style:none;margin:0;padding:0 0 56px;display:grid;gap:var(--ad-s5)}
+.card{
+  position:relative;display:grid;grid-template-columns:64px minmax(0,1fr);gap:var(--ad-s2) var(--ad-s5);
+  padding:calc(44px + var(--ad-s5)) var(--ad-s5) var(--ad-s8);
+  background:var(--ad-paper-photo);border:1px solid var(--ad-rule);
+  color:inherit;text-decoration:none;box-shadow:var(--ad-shadow-paper);
+  transition:transform var(--ad-dur) var(--ad-ease),box-shadow var(--ad-dur) var(--ad-ease);
+}
+/* Index-card head: call number and status above a full-width rule. */
+.card::before{content:"";position:absolute;left:0;right:0;top:44px;border-top:1px solid var(--ad-rule)}
+.card-hole{position:absolute;left:50%;bottom:18px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:var(--ad-paper-warm);border:1px solid var(--ad-rule-strong)}
+.card img{grid-row:span 3;width:64px;height:64px;border-radius:14px;align-self:start;margin-top:2px}
+.card-call,.card-status{position:absolute;top:14px;color:var(--ad-ink-3);font-size:var(--ad-fs-caption);letter-spacing:.08em;font-variant-numeric:tabular-nums}
+.card-call{left:var(--ad-s5)}
+.card-status{right:var(--ad-s5);letter-spacing:.02em}
+.card-name{margin:0;font-size:var(--ad-fs-h3);font-weight:700;letter-spacing:-.01em;line-height:1.4}
+.card-meta{margin:0;color:var(--ad-ink-3);font-size:var(--ad-fs-caption)}
+.card-desc{margin:var(--ad-s4) 0 0;color:var(--ad-ink-2);font-size:var(--ad-fs-small);line-height:var(--ad-lh-body)}
+.card-go{grid-column:2;margin-top:var(--ad-s3);color:var(--ad-indigo);font-size:var(--ad-fs-small)}
+.card-go span{display:inline-block;transition:transform var(--ad-dur-fast) var(--ad-ease)}
+@media (hover:hover){
+  .card:hover{transform:translateY(-10px) rotate(-.4deg);box-shadow:var(--ad-shadow-lift)}
+  .card:hover .card-go span{transform:translateX(4px)}
+}
+.drawer-front{
+  position:absolute;left:-1px;right:-1px;bottom:0;height:72px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--ad-s2);
+  background:var(--ad-paper-sunken);border:1px solid var(--ad-rule-strong);
+  box-shadow:0 -6px 14px rgba(33,28,23,.05);pointer-events:none;
+}
+.drawer-label{padding:4px 14px;border:1px solid var(--ad-rule-strong);background:var(--ad-paper);color:var(--ad-ink-2);font-size:11px;letter-spacing:.14em;font-variant-numeric:tabular-nums}
+.drawer-pull{width:56px;height:8px;border-radius:8px;border:1px solid var(--ad-rule-strong);background:var(--ad-paper)}
+.drawer-note{margin:var(--ad-s5) 0 0;color:var(--ad-ink-3);font-size:var(--ad-fs-caption)}
+@media (max-width:639px){
+  .drawer{padding:var(--ad-s5) var(--ad-s3) 0}
+  .card{grid-template-columns:48px minmax(0,1fr);gap:var(--ad-s1) var(--ad-s4);padding:calc(44px + var(--ad-s4)) var(--ad-s4) var(--ad-s8)}
+  .card img{width:48px;height:48px;border-radius:11px}
+  .card-call{left:var(--ad-s4)}
+  .card-status{right:var(--ad-s4)}
+  .card-desc{grid-column:1/-1}
+  .card-go{grid-column:1/-1}
+}
+@media (prefers-reduced-motion:reduce){.card,.card-go span{transition:none}.card:hover{transform:none}}
 </style>
 </head>
 <body>
-<main>
-  <p class="eyebrow">ADELIE DRAW</p>
-  <h1>아델리드로우가 만드는 앱.</h1>
-  <p class="lede">아델리드로우의 캐릭터와 문구를 앱으로 옮기고 있습니다. 준비된 앱부터 이곳에 안내합니다.</p>
-  <ul class="apps">
-    <li>
-      <a href="/pages/">
-        <img src="assets/img/app-icon.webp" width="44" height="44" alt="">
-        <span>
-          <span class="name">Adelie Pages</span>
-          <span class="desc">스티커팩으로 한 장을 만드는 디지털 문구 앱 · 출시 준비 중</span>
-        </span>
-        <span class="arrow" aria-hidden="true">→</span>
-      </a>
-    </li>
-  </ul>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+<nav class="ad-brandbar" aria-label="Adelie Draw">
+  <div class="ad-brandbar__inner">
+    <ul class="ad-brandbar__list">
+      <li><a class="ad-brandbar__tab ad-brandbar__home" href="https://adeliedraw.com/">Adelie Draw</a></li>
+      <li><a class="ad-brandbar__tab" href="https://info.adeliedraw.com/">Info</a></li>
+      <li><a class="ad-brandbar__tab" href="https://shop.adeliedraw.com/">Shop</a></li>
+      <li><a class="ad-brandbar__tab" href="https://app.adeliedraw.com/" aria-current="page">Apps</a></li>
+    </ul>
+  </div>
+</nav>
+<main id="main">
+  <div data-ad-settle>
+    <p class="ad-eyebrow">ADELIE DRAW APPS</p>
+    <h1>그림과 문구를,<br><em>손안의 앱</em>으로.</h1>
+    <p class="lede">아델리드로우의 캐릭터와 문구를 앱으로 옮기고 있습니다. 준비된 앱부터 이 서랍에 한 장씩 꽂아 둡니다.</p>
+  </div>
+  <section class="drawer" aria-labelledby="drawer-title" data-ad-settle style="--ad-settle-turn:0deg">
+    <h2 id="drawer-title" class="ad-visually-hidden">앱 목록</h2>
+    <ul class="drawer-cards">
+      <li>
+        <a class="card ad-cut" href="/pages/">
+          <img src="assets/img/app-icon.webp" width="64" height="64" alt="">
+          <span class="card-call" aria-hidden="true">AP · 01</span>
+          <span class="card-status">출시 준비 중</span>
+          <h3 class="card-name">Adelie Pages</h3>
+          <p class="card-meta">디지털 문구 앱 · iOS · Android</p>
+          <p class="card-desc">아델리드로우 스티커팩으로 사진과 글을 꾸며 나만의 한 장을 만드는 앱이에요.</p>
+          <span class="card-go">소개 보기 <span aria-hidden="true">→</span></span>
+          <span class="card-hole" aria-hidden="true"></span>
+        </a>
+      </li>
+    </ul>
+    <div class="drawer-front" aria-hidden="true"><span class="drawer-label">APPS · A–Z</span><span class="drawer-pull"></span></div>
+  </section>
+  <p class="drawer-note">새 앱은 출시가 정해지면 이 서랍에 추가됩니다.</p>
 </main>
-<footer><div>&copy; 2026 Adelie Draw. All rights reserved. · <a href="/pages/privacy/">개인정보처리방침</a> · <a href="/pages/terms/">이용약관</a> · <a href="/pages/support/">지원</a> · <a href="/pages/info/">앱 정보</a></div></footer>
+<footer class="ad-footer">
+  <div class="ad-footer__inner">
+    <div class="ad-footer__brand">
+      <a class="ad-footer__mark" href="https://adeliedraw.com/">Adelie Draw</a>
+      <p>그림에서 시작해, 일상에서 쓰이는 문구로.</p>
+    </div>
+    <nav class="ad-footer__col" aria-label="Adelie Draw">
+      <p class="ad-footer__label">ADELIE DRAW</p>
+      <a href="https://adeliedraw.com/">Home</a>
+      <a href="https://info.adeliedraw.com/">Info</a>
+      <a href="https://shop.adeliedraw.com/">Shop</a>
+      <a href="https://app.adeliedraw.com/" aria-current="page">Apps</a>
+    </nav>
+    <nav class="ad-footer__col" aria-label="Adelie Pages">
+      <p class="ad-footer__label">ADELIE PAGES</p>
+      <a href="/pages/">앱 소개</a>
+      <a href="/pages/privacy/">개인정보처리방침</a>
+      <a href="/pages/terms/">이용약관</a>
+      <a href="/pages/support/">지원</a>
+    </nav>
+    <div class="ad-footer__col">
+      <p class="ad-footer__label">CONTACT</p>
+      <a href="https://www.instagram.com/adelie.draw/" rel="noopener">Instagram</a>
+      <a href="https://x.com/canvaswitch_" rel="noopener">X</a>
+      <a href="mailto:adeliedraw@gmail.com">adeliedraw@gmail.com</a>
+    </div>
+  </div>
+  <div class="ad-footer__base">
+    <small>© 2026 Adelie Draw. All rights reserved.</small>
+    <small><a href="brand/fonts/OFL-LINESeedKR.txt">LINE Seed Sans KR · OFL</a></small>
+  </div>
+  <img class="ad-footer__penguin" src="brand/resting-penguin.webp" width="240" height="240" alt="" loading="lazy" decoding="async">
+</footer>
 </body>
 </html>
