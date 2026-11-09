@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Adelie Draw Shop</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://en.adeliedraw.com/">
+<script>
+// QR landing for the overseas shops: Japan → jp mall, everyone else → en mall.
+// "Japan" = first browser language implies JP (ja, ja-JP, en-JP) or the device clock is on Tokyo time.
+(() => {
+  let japan = false;
+  try {
+    const tag = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+    japan = new Intl.Locale(tag).maximize().region === 'JP'
+      || Intl.DateTimeFormat().resolvedOptions().timeZone === 'Asia/Tokyo';
+  } catch { /* old browser or malformed tag: en */ }
+  window.location.replace(japan ? 'https://jp.adeliedraw.com/' : 'https://en.adeliedraw.com/');
+})();
+</script>
+<meta name="theme-color" content="#F8F8F8">
+<link rel="icon" type="image/png" href="../assets/img/favicon.png">
+<link rel="stylesheet" href="../brand/adelie-web.css">
+<style>
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column}
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--ad-s5);padding:var(--ad-section) var(--ad-gutter);text-align:center}
+h1{margin:0;font-size:clamp(28px,4vw,40px);font-weight:400;line-height:1.3}
+.choices{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--ad-s3)}
+</style>
+</head>
+<body>
+<nav class="ad-brandbar" aria-label="Adelie Draw"><div class="ad-brandbar__inner"><ul class="ad-brandbar__list"><li><a class="ad-brandbar__tab ad-brandbar__home" href="https://adeliedraw.com/">Adelie Draw</a></li><li><a class="ad-brandbar__tab" href="https://info.adeliedraw.com/">Info</a></li><li><a class="ad-brandbar__tab" href="https://shop.adeliedraw.com/" aria-current="page">Shop</a></li><li><a class="ad-brandbar__tab" href="https://app.adeliedraw.com/">Apps</a></li></ul></div></nav>
+<main>
+<h1>Adelie Draw Shop</h1>
+<div class="choices">
+<a class="ad-button" href="https://en.adeliedraw.com/">English · USD</a>
+<a class="ad-button" href="https://jp.adeliedraw.com/" lang="ja">日本語 · JPY</a>
+</div>
+</main>
+</body>
+</html>

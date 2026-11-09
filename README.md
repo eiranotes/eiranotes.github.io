@@ -32,3 +32,10 @@ app   CNAME   eiranotes.github.io.
 토큰·브랜드 바·푸터·404는 정본 `adelie-web-design`에서 `brand/`로 복사합니다.
 `brand/` 파일은 직접 고치지 않습니다. 정본에서 고친 뒤 `python3 tools/sync.py --write app-root`.
 `404.html`은 정본의 `templates/404.html`에서 만듭니다.
+
+## 해외몰 QR (`/shop/`)
+
+`app.adeliedraw.com/shop/`은 해외몰 QR 주소입니다. 접속하면 바로 이동합니다.
+첫 브라우저 언어가 일본(ja, ja-JP, en-JP…)이거나 기기 시간대가 `Asia/Tokyo`면 `jp.adeliedraw.com`(JPY),
+그 밖에는 `en.adeliedraw.com`(USD)으로 갑니다. 스크립트가 없으면 두 몰 버튼이 보입니다.
+QR 파일과 생성 도구는 `eiranotes/pages` 저장소의 `qr/adelie-draw-shop.*`, `tool/make_store_qr.py`에 있습니다.
